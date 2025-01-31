@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   db:
-    image: timescale/timescaledb-ha:pg14
+    image: timescale/timescaledb-ha:pg17
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
