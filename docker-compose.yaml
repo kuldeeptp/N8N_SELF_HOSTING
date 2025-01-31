@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   db:
-    image: ankane/pgvector:latest
+    image: timescale/timescaledb-ha:pg14
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
