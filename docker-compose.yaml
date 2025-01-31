@@ -99,22 +99,6 @@ services:
     volumes:
       - ollama_storage:/root/.ollama
 
-  ollama-gpu:
-    image: ollama/ollama:latest
-    container_name: ollama-gpu
-    networks: ['demo']
-    restart: unless-stopped
-    ports:
-      - 11434:11434
-    volumes:
-      - ollama_storage:/root/.ollama
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
 
   ollama-pull-llama-cpu:
     image: ollama/ollama:latest
@@ -128,16 +112,3 @@ services:
       - ollama_storage:/root/.ollama
     depends_on:
       - ollama-cpu
-
-  ollama-pull-llama-gpu:
-    image: ollama/ollama:latest
-    networks: ['demo']
-    container_name: ollama-pull-llama-gpu
-    entrypoint: /bin/sh
-    command:
-      - "-c"
-      - "sleep 3; OLLAMA_HOST=ollama-gpu:11434 ollama pull nomic-embed-text; OLLAMA_HOST=ollama-gpu:11434 ollama pull qwq:32b-preview-q8_0"
-    volumes:
-      - ollama_storage:/root/.ollama
-    depends_on:
-      - ollama-gpu
