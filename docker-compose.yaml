@@ -1,3 +1,5 @@
+version: '3.8'  # Add this line to specify the Docker Compose version
+
 volumes:
   n8n_storage:
   postgres_storage:
@@ -5,43 +7,7 @@ volumes:
   qdrant_storage:
 
 networks:
-  demo:
-
-x-n8n: &service-n8n
-  image: n8nio/n8n:latest
-  networks: ['demo']
-  environment:
-    - DB_TYPE=postgresdb
-    - DB_POSTGRESDB_HOST=postgres
-    - DB_POSTGRESDB_USER=${POSTGRES_USER}
-    - DB_POSTGRESDB_PASSWORD=${POSTGRES_PASSWORD}
-    - N8N_DIAGNOSTICS_ENABLED=false
-    - N8N_PERSONALIZATION_ENABLED=false
-    - N8N_ENCRYPTION_KEY
-    - N8N_USER_MANAGEMENT_JWT_SECRET
-  links:
-    - postgres
-
-x-ollama: &service-ollama
-  image: ollama/ollama:latest
-  container_name: ollama
-  networks: ['demo']
-  restart: unless-stopped
-  ports:
-    - 11434:11434
-  volumes:
-    - ollama_storage:/root/.ollama
-
-x-init-ollama: &init-ollama
-  image: ollama/ollama:latest
-  networks: ['demo']
-  container_name: ollama-pull-llama
-  volumes:
-    - ollama_storage:/root/.ollama
-  entrypoint: /bin/sh
-  command:
-    - "-c"
-    - "sleep 3; OLLAMA_HOST=ollama:11434 ollama pull nomic-embed-text; OLLAMA_HOST=ollama:${OLLAMA_PORT} ollama pull qwq:32b-preview-q8_0"
+  demo:  # Define the network properly
 
 services:
   postgres:
@@ -49,9 +15,9 @@ services:
     networks: ['demo']
     restart: unless-stopped
     environment:
-      - POSTGRES_USER
-      - POSTGRES_PASSWORD
-      - POSTGRES_DB
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
     ports:
       - 5432:5432
     volumes:
@@ -61,6 +27,7 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+
   pgadmin:
     image: dpage/pgadmin4
     container_name: pgadmin_container
@@ -71,8 +38,10 @@ services:
       - "5050:5050"
     depends_on:
       - postgres
+
   n8n-import:
-    <<: *service-n8n
+    image: n8nio/n8n:latest
+    networks: ['demo']
     container_name: n8n-import
     entrypoint: /bin/sh
     command:
@@ -85,11 +54,21 @@ services:
         condition: service_healthy
 
   n8n:
-    <<: *service-n8n
+    image: n8nio/n8n:latest
+    networks: ['demo']
     container_name: n8n
     restart: unless-stopped
     ports:
       - 5678:5678
+    environment:
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=postgres
+      - DB_POSTGRESDB_USER=${POSTGRES_USER}
+      - DB_POSTGRESDB_PASSWORD=${POSTGRES_PASSWORD}
+      - N8N_DIAGNOSTICS_ENABLED=false
+      - N8N_PERSONALIZATION_ENABLED=false
+      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
+      - N8N_USER_MANAGEMENT_JWT_SECRET=${N8N_USER_MANAGEMENT_JWT_SECRET}
     volumes:
       - n8n_storage:/home/node/.n8n
       - ./n8n/backup:/backup
@@ -111,12 +90,24 @@ services:
       - qdrant_storage:/qdrant/storage
 
   ollama-cpu:
-    profiles: ["cpu"]
-    <<: *service-ollama
+    image: ollama/ollama:latest
+    container_name: ollama-cpu
+    networks: ['demo']
+    restart: unless-stopped
+    ports:
+      - 11434:11434
+    volumes:
+      - ollama_storage:/root/.ollama
 
   ollama-gpu:
-    profiles: ["gpu-nvidia"]
-    <<: *service-ollama
+    image: ollama/ollama:latest
+    container_name: ollama-gpu
+    networks: ['demo']
+    restart: unless-stopped
+    ports:
+      - 11434:11434
+    volumes:
+      - ollama_storage:/root/.ollama
     deploy:
       resources:
         reservations:
@@ -126,13 +117,27 @@ services:
               capabilities: [gpu]
 
   ollama-pull-llama-cpu:
-    profiles: ["cpu"]
-    <<: *init-ollama
+    image: ollama/ollama:latest
+    networks: ['demo']
+    container_name: ollama-pull-llama-cpu
+    entrypoint: /bin/sh
+    command:
+      - "-c"
+      - "sleep 3; OLLAMA_HOST=ollama-cpu:11434 ollama pull nomic-embed-text; OLLAMA_HOST=ollama-cpu:11434 ollama pull qwq:32b-preview-q8_0"
+    volumes:
+      - ollama_storage:/root/.ollama
     depends_on:
       - ollama-cpu
 
   ollama-pull-llama-gpu:
-    profiles: ["gpu-nvidia"]
-    <<: *init-ollama
+    image: ollama/ollama:latest
+    networks: ['demo']
+    container_name: ollama-pull-llama-gpu
+    entrypoint: /bin/sh
+    command:
+      - "-c"
+      - "sleep 3; OLLAMA_HOST=ollama-gpu:11434 ollama pull nomic-embed-text; OLLAMA_HOST=ollama-gpu:11434 ollama pull qwq:32b-preview-q8_0"
+    volumes:
+      - ollama_storage:/root/.ollama
     depends_on:
       - ollama-gpu
