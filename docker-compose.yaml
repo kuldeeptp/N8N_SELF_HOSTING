@@ -29,8 +29,7 @@ services:
       OLLAMA_HOST: http://ollama:11434
     command: ["--poll-interval", "5s", "--log-level", "DEBUG"]
     depends_on:
-      db:
-        condition: service_healthy
+      - db
 
   ollama:
     image: ollama/ollama:latest
@@ -38,13 +37,10 @@ services:
       - ollama_data:/root/.ollama
     ports:
       - "${OLLAMA_PORT}:11434"
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [gpu]
+    # For GPU support, use runtime instead of deploy
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
 
   pgadmin:
     image: dpage/pgadmin4:latest
@@ -87,8 +83,7 @@ services:
     volumes:
       - n8n_data:/home/node/.n8n
     depends_on:
-      db:
-        condition: service_healthy
+      - db
 
   n8n-worker:
     image: docker.n8n.io/n8nio/n8n
