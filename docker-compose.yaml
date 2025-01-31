@@ -71,8 +71,6 @@ services:
       - N8N_USER_MANAGEMENT_JWT_SECRET=${N8N_USER_MANAGEMENT_JWT_SECRET}
     volumes:
       - n8n_storage:/home/node/.n8n
-      - ./n8n/backup:/backup
-      - ./shared:/data/shared
     depends_on:
       postgres:
         condition: service_healthy
