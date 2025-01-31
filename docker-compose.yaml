@@ -37,10 +37,6 @@ services:
       - ollama_data:/root/.ollama
     ports:
       - "${OLLAMA_PORT}:11434"
-    # For GPU support, use runtime instead of deploy
-    runtime: nvidia
-    environment:
-      - NVIDIA_VISIBLE_DEVICES=all
 
   pgadmin:
     image: dpage/pgadmin4:latest
