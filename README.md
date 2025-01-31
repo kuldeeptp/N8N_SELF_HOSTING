@@ -156,6 +156,26 @@ For production environments:
 
 [Add contribution guidelines here]
 
-## 📫 Support
 
 [Add support contact information here]
+
+**Nodes that interact with the local filesystem**
+
+- [Read/Write Files from Disk](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.filesreadwrite/)
+- [Local File Trigger](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.localfiletrigger/)
+- [Execute Command](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.executecommand/)
+
+## 📜 License
+This project is licensed under the Apache License 2.0 - see the
+[LICENSE](LICENSE) file for details.
+
+## 📫 Support
+
+Join the conversation in the [n8n Forum](https://community.n8n.io/), where you
+can:
+
+- **Share Your Work**: Show off what you’ve built with n8n and inspire others
+  in the community.
+- **Ask Questions**: Whether you’re just getting started or you’re a seasoned
+  pro, the community and our team are ready to support with any challenges.
+- **Propose Ideas**: Have an idea for a feature or improvement? Le
