@@ -1,9 +1,37 @@
 version: '3.8'
+
 volumes:
   n8n_storage:
+  redis_storage:
   postgres_storage:
   ollama_storage:
   qdrant_storage:
+
+x-shared: &shared
+  restart: always
+  image: docker.n8n.io/n8nio/n8n
+  environment:
+    - DB_TYPE=postgresdb
+    - DB_POSTGRESDB_HOST=postgres
+    - DB_POSTGRESDB_PORT=5432
+    - DB_POSTGRESDB_DATABASE=${POSTGRES_DB}
+    - DB_POSTGRESDB_USER=${POSTGRES_USER}
+    - DB_POSTGRESDB_PASSWORD=${POSTGRES_PASSWORD}
+    - EXECUTIONS_MODE=queue
+    - QUEUE_BULL_REDIS_HOST=redis
+    - QUEUE_HEALTH_CHECK_ACTIVE=true
+    - N8N_ENCRYPTION_KEY=${ENCRYPTION_KEY}
+    - GENERIC_TIMEZONE=${GENERIC_TIMEZONE}
+  links:
+    - postgres
+    - redis
+  volumes:
+    - n8n_storage:/home/node/.n8n
+  depends_on:
+    redis:
+      condition: service_healthy
+    postgres:
+      condition: service_healthy
 
 networks:
   demo:  # Define the network properly
@@ -37,46 +65,27 @@ services:
       - "5050:5050"
     depends_on:
       - postgres
-
-  n8n-import:
-    image: n8nio/n8n:latest
-    networks: ['demo']
-    container_name: n8n-import
-    entrypoint: /bin/sh
-    command:
-      - "-c"
-      - "n8n import:credentials --separate --input=/backup/credentials && n8n import:workflow --separate --input=/backup/workflows"
+  redis:
+    image: redis:6-alpine
+    restart: always
     volumes:
-      - ./n8n/backup:/backup
-    depends_on:
-      postgres:
-        condition: service_healthy
+      - redis_storage:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   n8n:
-    image: n8nio/n8n:latest
-    networks: ['demo']
-    container_name: n8n
-    restart: unless-stopped
+    <<: *shared
     ports:
       - 5678:5678
-    environment:
-      - DB_TYPE=postgresdb
-      - DB_POSTGRESDB_HOST=postgres
-      - DB_POSTGRESDB_USER=${POSTGRES_USER}
-      - DB_POSTGRESDB_PASSWORD=${POSTGRES_PASSWORD}
-      - N8N_DIAGNOSTICS_ENABLED=false
-      - N8N_PERSONALIZATION_ENABLED=false
-      - N8N_SECURE_COOKIE=false
-      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
-      - N8N_USER_MANAGEMENT_JWT_SECRET=${N8N_USER_MANAGEMENT_JWT_SECRET}
-    volumes:
-      - n8n_storage:/home/node/.n8n
-    depends_on:
-      postgres:
-        condition: service_healthy
-      n8n-import:
-        condition: service_completed_successfully
 
+  n8n-worker:
+    <<: *shared
+    command: worker
+    depends_on:
+      - n8n
   qdrant:
     image: qdrant/qdrant
     container_name: qdrant
