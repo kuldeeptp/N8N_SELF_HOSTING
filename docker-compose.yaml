@@ -78,6 +78,7 @@ services:
 
   n8n:
     <<: *shared
+    networks: ['demo']
     ports:
       - 5678:5678
 
